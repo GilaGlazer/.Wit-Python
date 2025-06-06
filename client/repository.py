@@ -138,6 +138,7 @@ class Repository:
                     histogram_url = data.get("histogram_url")
                     pie_chart_url = data.get("pie_chart_url")
                     bar_chart_url = data.get("bar_chart_url")
+                    line_chart_url = data.get("line_chart_url")
 
                     if histogram_url:
                         display_image_from_url(f"http://127.0.0.1:8000{histogram_url}", "Function Length Histogram")
@@ -148,6 +149,8 @@ class Repository:
                     if bar_chart_url:
                         display_image_from_url(f"http://127.0.0.1:8000{bar_chart_url}", "Problems Per File Bar Chart")
 
+                    if line_chart_url:
+                        display_image_from_url(f"http://127.0.0.1:8000{line_chart_url}", "Problems Per File Line Chart")
                 else:
                     print("Server returned an error in analyzer:", response.status_code)
                     print(response.text)
