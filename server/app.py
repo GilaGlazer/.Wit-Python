@@ -5,23 +5,24 @@ from fastapi.responses import JSONResponse,FileResponse
 import uvicorn
 
 from analyzer import analyze_zip
+from db import analysis_collection
 
 from matplotlibFunc import get_all_function_lengths, generate_function_length_histogram, \
-    generate_problem_type_pie_chart, generate_problem_count_bar_chart
+    generate_problem_type_pie_chart, generate_problem_count_bar_chart, generate_issue_trend_graph
 
 app = FastAPI()
 
 @app.post("/alert")
 async def alert(zip_file: UploadFile = File(...)):
     zip_bytes = await zip_file.read()
-    results = analyze_zip(zip_bytes)
+    results = analyze_zip(zip_bytes, save_to_db=True)
     return {"results": results}
 
 
 @app.post("/analyzer")
 async def analyze(zip_file: UploadFile = File(...)):
     zip_bytes = await zip_file.read()
-    results = analyze_zip(zip_bytes)
+    results = analyze_zip(zip_bytes, save_to_db=False)
 
     # Get lengths of all functions for histogram visualization
     all_lengths = get_all_function_lengths(results)
@@ -52,10 +53,14 @@ async def analyze(zip_file: UploadFile = File(...)):
     pie_chart_path = generate_problem_type_pie_chart(file_distribution)
     bar_chart_path = generate_problem_count_bar_chart(long_vs_short)
 
+    records = list(analysis_collection.find().sort("timestamp", 1))
+    line_chart_path = generate_issue_trend_graph(records)
+
     return {
         "histogram_url": f"/graph/image?path={histogram_path}",
         "pie_chart_url": f"/graph/image?path={pie_chart_path}",
-        "bar_chart_url": f"/graph/image?path={bar_chart_path}"
+        "bar_chart_url": f"/graph/image?path={bar_chart_path}",
+        "line_chart_url": f"/graph/image?path={line_chart_path}"
     }
 
 @app.get("/graph/image")

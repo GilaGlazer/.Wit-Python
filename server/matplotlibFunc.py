@@ -1,5 +1,9 @@
+import os
+
 import matplotlib.pyplot as plt
 import tempfile
+
+from db import analysis_collection
 
 
 def save_plot_as_png(plot_func):
@@ -55,3 +59,19 @@ def get_all_function_lengths(results):
     for file_checks in results.values():
         lengths.extend(file_checks.get("function_lengths", []))
     return lengths
+
+
+def generate_issue_trend_graph(records):
+    def plot():
+        timestamps = [record["timestamp"] for record in records]
+        issue_counts = [record["issues"] for record in records]
+
+        plt.figure(figsize=(10, 5))
+        plt.plot(timestamps, issue_counts, marker='o', linestyle='-', color='blue')
+        plt.xlabel("Time")
+        plt.ylabel("Number of Issues")
+        plt.title("Code Issues Over Time")
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+
+    return save_plot_as_png(plot)

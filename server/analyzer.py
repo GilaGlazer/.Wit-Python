@@ -3,9 +3,11 @@ import re
 import tempfile
 import zipfile
 import ast
+from datetime import datetime
+from db import analysis_collection
 
 
-def analyze_zip(zip_bytes: bytes):
+def analyze_zip(zip_bytes: bytes, save_to_db: bool = True):
     with tempfile.TemporaryDirectory() as predicament:
         zip_path = os.path.join(predicament, "project.zip")
 
@@ -16,6 +18,7 @@ def analyze_zip(zip_bytes: bytes):
             zip_ref.extractall(predicament)
 
         results = {}
+        total_issues = 0
 
         for root, dirs, files in os.walk(predicament):
             for filename in files:
@@ -27,15 +30,34 @@ def analyze_zip(zip_bytes: bytes):
                     tree = ast.parse(content)
 
                     func_warnings, func_lengths = check_if_func_too_long(file_path)
+                    file_too_long = check_if_file_too_long(file_path)
+                    unused_vars = check_unused_variables(file_path)
+                    docstrings = check_missing_docstrings(file_path)
+                    non_english = check_non_english_variables(tree)
+
+                    total_issues += (
+                        len(func_warnings)
+                        + len(file_too_long)
+                        + len(unused_vars)
+                        + len(docstrings)
+                        + len(non_english)
+                    )
 
                     results[filename] = {
                         "long_functions": func_warnings,
                         "function_lengths": func_lengths,
-                        "file_too_long": check_if_file_too_long(file_path),
-                        "unused_variables": check_unused_variables(file_path),
-                        "missing_docstrings": check_missing_docstrings(file_path),
-                        "non_english_variable_names": check_non_english_variables(tree)
+                        "file_too_long": file_too_long,
+                        "unused_variables": unused_vars,
+                        "missing_docstrings": docstrings,
+                        "non_english_variable_names": non_english,
                     }
+
+        if save_to_db:
+            analysis_collection.insert_one({
+                "timestamp": datetime.now(),
+                "issues": total_issues
+            })
+
     return results
 
 def check_if_func_too_long(file_path):
@@ -120,7 +142,7 @@ def check_missing_docstrings(file_path):
 
 def check_non_english_variables(tree):
     warnings = []
-    non_latin_pattern = re.compile(r'[^\x00-\x7F]')  # תווים שאינם ASCII
+    non_latin_pattern = re.compile(r'[^\x00-\x7F]')
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
