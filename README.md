@@ -68,12 +68,6 @@ uvicorn app:app --reload
 | `/alert` | `POST` | Accepts Python files and returns JSON warnings for code issues detected. |
 | `/graph/image` | `GET` | Returns a specific image (PNG) of a generated graph by file path query. |
 
-### 💡 Example Usage
-
-```http
-GET /graph/image?path=graphs/function_lengths.png
-```
-
 ---
 
 ## ✅ Code Quality Checks
